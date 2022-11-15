@@ -1,11 +1,23 @@
-import { App, Stack, StackProps } from 'aws-cdk-lib';
+import { App, CfnOutput, Stack, StackProps } from 'aws-cdk-lib';
+import { CfnDomain, CfnRepository } from 'aws-cdk-lib/aws-codeartifact';
 import { Construct } from 'constructs';
 
-export class MyStack extends Stack {
+export class CodeArtifactStack extends Stack {
   constructor(scope: Construct, id: string, props: StackProps = {}) {
     super(scope, id, props);
 
-    // define resources here...
+    const artifactDomain = new CfnDomain(this, 'artifact-domain', {
+      domainName: 'npm-artifacts'
+    });
+
+    const npmRepository = new CfnRepository(this, "npm-artifact-repo", {
+      domainName: artifactDomain.domainName,
+      repositoryName: "npmjs",
+      externalConnections: ["public:npmjs"],
+    });
+    npmRepository.addDependsOn(artifactDomain);
+
+    new CfnOutput(this, 'artifact-repo-url', { value: npmRepository.ref })
   }
 }
 
@@ -17,7 +29,7 @@ const devEnv = {
 
 const app = new App();
 
-new MyStack(app, 'cdk-codeartifact-npm-dev', { env: devEnv });
+new CodeArtifactStack(app, 'cdk-codeartifact-npm-dev', { env: devEnv });
 // new MyStack(app, 'cdk-codeartifact-npm-prod', { env: prodEnv });
 
 app.synth();
